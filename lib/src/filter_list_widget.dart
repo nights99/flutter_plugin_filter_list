@@ -1,4 +1,9 @@
 part of './../filter_list.dart';
+// final int maxInt = (double.infinity is int) ? double.infinity as int : ~minInt;
+// final int minInt = (double.infinity is int) ? -double.infinity as int : (-1 << 63);
+const int maxInt = ~(-1 << 63);
+const int minInt = (-1 << 63);
+
 class FilterListWidget extends StatefulWidget {
   FilterListWidget({
     Key key,
@@ -25,6 +30,7 @@ class FilterListWidget extends StatefulWidget {
     this.searchFieldBackgroundColor = const Color(0xfff5f5f5),
     this.selectedTextBackgroundColor = Colors.blue,
     this.unselectedTextbackGroundColor = const Color(0xfff8f8f8),
+    this.listLimit = maxInt,
     this.onApplyButtonClick
   }) : super(key: key);
   final double height;
@@ -51,6 +57,7 @@ class FilterListWidget extends StatefulWidget {
   final bool hidecloseIcon;
   final bool hideHeader;
   final bool hideheaderText;
+  final int listLimit;
   final Function(List<String>) onApplyButtonClick;
 
   @override
@@ -204,7 +211,7 @@ class _FilterListWidgetState extends State<FilterListWidget> {
 
   List<Widget> _buildChoiceList(List<String> list) {
     List<Widget> choices = List();
-    list.forEach(
+    list.take(widget.listLimit).forEach(
       (item) {
         var selectedText = _selectedTextList.contains(item);
         choices.add(
@@ -212,9 +219,15 @@ class _FilterListWidgetState extends State<FilterListWidget> {
             onSelected: (value) {
               setState(
                 () {
-                  selectedText
-                      ? _selectedTextList.remove(item)
-                      : _selectedTextList.add(item);
+                  // selectedText
+                  //     ? _selectedTextList.remove(item)
+                  //     : _selectedTextList.add(item);
+                  if (selectedText) {
+                  _selectedTextList.remove(item);
+                  } else {
+                  _selectedTextList.clear();
+                  _selectedTextList.add(item);
+                  }
                 },
               );
             },
