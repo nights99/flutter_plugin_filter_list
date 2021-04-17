@@ -2,21 +2,19 @@
 ## filter_list Plugin 
 [![pub package](https://img.shields.io/pub/v/filter_list?color=blue)](https://pub.dev/packages/filter_list)  [![Codemagic build status](https://api.codemagic.io/apps/5e5f9812018eb900168eef48/5e5f9812018eb900168eef47/status_badge.svg)](https://codemagic.io/apps/5e5f9812018eb900168eef48/5e5f9812018eb900168eef47/latest_build) ![GitHub last commit](https://img.shields.io/github/last-commit/Thealphamerc/flutter_plugin_filter_list) [![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.svg?v=103)](https://github.com/Thealphamerc/flutter_plugin_filter_list) ![GitHub](https://img.shields.io/github/license/TheAlphamerc/flutter_plugin_filter_list) [![GitHub stars](https://img.shields.io/github/stars/Thealphamerc/flutter_plugin_filter_list?style=social)](https://github.com/login?return_to=%2FTheAlphamerc%flutter_plugin_filter_list) ![GitHub forks](https://img.shields.io/github/forks/TheAlphamerc/flutter_plugin_filter_list?style=social)
 
-Package designed to select multiple items from a list, with the option to filter and even search the items.
+Filter_list Package is designed to make single/multiple item selection from a list of string/object.
 
 ## Download App ![GitHub All Releases](https://img.shields.io/github/downloads/Thealphamerc/flutter_plugin_filter_list/total?color=green)
 <a href="https://github.com/TheAlphamerc/flutter_plugin_filter_list/releases/download/v0.0.5/app-release.apk"><img src="https://playerzon.com/asset/download.png" width="200"></img></a>
 
-## Data flow 
-* Pass list of strings to `FilterList.showFilterList()`.
-* Pass list of selected strings to show pre-selected text otherwise ignore it.
-* Invoke method `FilterList.showFilterList()` to display filter dialog.
+## Data flow
+* Invoke method `FilterListDialog.display()` to display filter dialog.
 * Make selection from list.
 * Click `All` button to select all text from list.
 * Click `Reset` button to make all text unselected.
 * Click `Apply` buton to return selected list of strings.
 * On `close` icon clicked it close dialog and return null value.
-* Without making any selection `Apply` button is pressed it will return empty list of string.
+* Without making any selection `Apply` button is pressed it will return empty list of items.
 
 ## Getting Started
 ### 1. Add library to your pubspec.yaml
@@ -26,7 +24,7 @@ Package designed to select multiple items from a list, with the option to filter
 ```yaml
 
 dependencies:
-  filter_list: ^0.0.5
+  filter_list: ^0.0.8
 
 ```
 
@@ -71,12 +69,26 @@ import package:filter_list/filter_list.dart';
   void _openFilterDialog() async {
     await FilterListDialog.display(
       context,
-      allTextList: countList,
+      listData: countList,
+      selectedListData: selectedCountList,
       height: 480,
-      borderRadius: 20,
       headlineText: "Select Count",
       searchFieldHintText: "Search Here",
-      selectedTextList: selectedCountList,
+      label: (item) {
+        return item;
+      },
+      validateSelectedItem: (list, val) {
+          return list.contains(val);
+      },
+      onItemSearch: (list, text) {
+          if (list.any((element) =>
+              element.toLowerCase().contains(text.toLowerCase()))) {
+            return list
+                .where((element) =>
+                    element.toLowerCase().contains(text.toLowerCase()))
+                .toList();
+          }
+        },
       onApplyButtonClick: (list) {
         if (list != null) {
           setState(() {
@@ -101,7 +113,6 @@ import package:filter_list/filter_list.dart';
           tooltip: 'Increment',
           child: Icon(Icons.add),
         ),
-        /// check for empty or null value selctedCountList
         body: selectedCountList == null || selectedCountList.length == 0
             ? Center(
                 child: Text('No text selected'),
@@ -116,26 +127,65 @@ import package:filter_list/filter_list.dart';
                 itemCount: selectedCountList.length));
   }
 ```
-#### To display filter widget use `FilterListWidget` and pass list of strings to it.
+#### How to use `FilterListWidget`.
 
 ```dart
+class User {
+  final String name;
+  final String avatar;
+  User({this.name, this.avatar});
+}
+
+
+
 class FilterPage extends StatelessWidget {
-  const FilterPage({Key key, this.allTextList}) : super(key: key);
-  final List<String> allTextList;
+  FilterPage({Key key}) : super(key: key);
+  List<User> userList = [
+    User(name: "Jon", avatar: ""),
+    User(name: "Ethel ", avatar: ""),
+    User(name: "Elyse ", avatar: ""),
+    User(name: "Nail  ", avatar: ""),
+    User(name: "Valarie ", avatar: ""),
+    User(name: "Lindsey ", avatar: ""),
+    User(name: "Emelyan ", avatar: ""),
+    User(name: "Carolina ", avatar: ""),
+    User(name: "Catherine ", avatar: ""),
+    User(name: "Stepanida  ", avatar: ""),
+  ];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Filter list Page"),
+        title: Text("Filter List Widget Example "),
       ),
       body: SafeArea(
         child: FilterListWidget(
-          allTextList: allTextList,
-          height: MediaQuery.of(context).size.height,
+          listData: userList,
           hideheaderText: true,
           onApplyButtonClick: (list) {
-            if(list != null){
-              print("selected list length: ${list.length}");
+            if (list != null) {
+              print("Selected items count: ${list.length}");
+            }
+          },
+          label: (item) {
+            /// Used to print text on chip
+            return item.name;
+          },
+          validateSelectedItem: (list, val) {
+            ///  identify if item is selected or not
+            return list.contains(val);
+          },
+          onItemSearch: (list, text) {
+            /// When text change in search text field then return list containing that text value
+            ///
+            ///Check if list has value which matchs to text
+            if (list.any((element) =>
+                element.name.toLowerCase().contains(text.toLowerCase()))) {
+              /// return list which contains matches
+              return list
+                  .where((element) =>
+                      element.name.toLowerCase().contains(text.toLowerCase()))
+                  .toList();
             }
           },
         ),
@@ -160,9 +210,9 @@ Customised control button |Customised selected text |Customised unselected text 
 ![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_9.jpg?raw=true)|![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_10.jpg?raw=true)|![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_12.jpg?raw=true)|![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_11.jpg?raw=true)|
 
 
-FilterListWidget |N/A |N/A |N/A
+ Customised Choice chip|Customised Choice chip |FilterListWidget|FilterListWidget 
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
-<img src="https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_14.jpg?raw=true" width="200"></img>|![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_101.jpg?raw=true)|![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_121.jpg?raw=true)|![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_111.jpg?raw=true)|
+![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_15.jpg?raw=true)|![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_17.jpg?raw=true)|![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_14.jpg?raw=true)|![](https://github.com/TheAlphamerc/flutter_plugin_filter_list/blob/master/screenshots/screenshot_16.jpg?raw=true)|
 
 
 
@@ -177,11 +227,20 @@ FilterListWidget |N/A |N/A |N/A
 `borderRadius` Type: **double**
 * Set border radius of filter dialog.
 
-`allTextList` Type: **List\<String>()**
+`listData` Type: **List\<dynamic>()**
 * Populate filter dialog with text list.
 
-`selectedTextList` Type: **List\<String>()**
+`selectedListData` Type: **List\<dynamic>()**
 * Marked selected text in filter dialog.
+
+`label` Type: [Callback] **{String Function(dynamic)}**
+* Print text on chip
+
+`validateSelectedItem` Type: [Callback] **bool Function(List<T> list, T item)** 
+* identifies weather a item is selecte or not
+
+`onItemSearch` Type: [Callback] **List<T> Function(List<T> list, String text)**
+* filter list on the basis of search field text
 
 `headlineText` Type: **String**
 * Set header text of filter dialog.
@@ -207,17 +266,29 @@ FilterListWidget |N/A |N/A |N/A
 `headerTextColor` Type: **Color**
 * Set color of header text.
 
-`applyButonTextColor` Type: **Color**
-* Set text color of apply button.
-
- `applyButonTextBackgroundColor` Type: **Color**
+`applyButonTextBackgroundColor` Type: **Color**
 * Set background color of apply button.
 
-`allResetButonColor` Type: **Color**
-* Set text color of all and reset button.
+`selectedChipTextStyle` Type **TextStyle**
+* TextStyle for chip when selected
 
-`selectedTextColor` Type: **Color**
-* Set color of selected text in filter dialog.
+`unselectedChipTextStyle` Type **TextStyle**
+* TextStyle for chip when not selected
+
+`controlButtonTextStyle` Type **TextStyle**
+* TextStyle for `All` and `Reset` button text
+
+`applyButtonTextStyle` Type **TextStyle**
+* TextStyle for `Apply` button
+
+`headerTextStyle` Type **TextStyle**
+* TextStyle for header text
+
+`searchFieldTextStyle` Type **TextStyle**
+* TextStyle for search field text
+
+`choiceChipBuilder` Type **TextStyle**
+* Builder for custom choice chip
 
 `selectedTextBackgroundColor` Type: **Color**
 * Set background color of selected text field.
@@ -225,17 +296,14 @@ FilterListWidget |N/A |N/A |N/A
 `unselectedTextbackGroundColor` Type: **Color**
 * Set background color of unselected text field.
 
-`unselectedTextColor` Type: **Color**
-* Set text color of unselected text in filter dialog
-
 `searchFieldBackgroundColor` Type: **Color**
 * Set background color of Search field.
 
 `backgroundColor` Type: **Color**
 * Set background color of filter color.
 
-`onApplyButtonClick` Type **Function(List<String>)**
- * Returns list of strings when apply button is clicked 
+`onApplyButtonClick` Type **Function(List<dynamic>)**
+ * Returns list of items when apply button is clicked 
 
 ## Flutter plugins
 Plugin Name        | Stars        
