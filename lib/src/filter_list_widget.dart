@@ -313,7 +313,7 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
 
   List<Widget> _buildChoiceList() {
     List<Widget> choices = [];
-    _listData.forEach(
+    _listData.take(widget.listLimit).forEach(
       (item) {
         var selectedText = widget.validateSelectedItem(_selectedListData, item);
         choices.add(
