@@ -1,4 +1,4 @@
-part of './../filter_list.dart';
+part of './filter_list_dialog.dart';
 // final int maxInt = (double.infinity is int) ? double.infinity as int : ~minInt;
 // final int minInt = (double.infinity is int) ? -double.infinity as int : (-1 << 63);
 const int maxInt = ~(-1 << 63);
