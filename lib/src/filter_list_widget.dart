@@ -4,70 +4,80 @@ part of './filter_list_dialog.dart';
 const int maxInt = ~(-1 << 63);
 const int minInt = (-1 << 63);
 
-/// {@tool snippet}
-///
-/// This example shows how to use [FilterListWidget]
-///
-///  ``` dart
-/// FilterListWidget(
-///   listData: ["One", "Two", "Three", "Four","five","Six","Seven","Eight","Nine","Ten"],
-///   selectedListData: ["One", "Three", "Four","Eight","Nine"],
-///   hideheaderText: true,
-///   height: MediaQuery.of(context).size.height,
-///   // hideheaderText: true,
-///   onApplyButtonClick: (list) {
-///     Navigator.pop(context, list);
-///   },
-///   label: (item) {
-///     /// Used to print text on chip
-///     return item;
-///   },
-///   validateSelectedItem: (list, val) {
-///     ///  identify if item is selected or not
-///     return list.contains(val);
-///   },
-///   onItemSearch: (list, text) {
-///     /// When text change in search text field then return list containing that text value
-///     ///
-///     ///Check if list has value which matchs to text
-///     if (list.any((element) =>
-///         element.toLowerCase().contains(text.toLowerCase()))) {
-///       /// return list which contains matches
-///       return list
-///           .where((element) =>
-///               element.toLowerCase().contains(text.toLowerCase()))
-///           .toList();
-///     }
-///   },
-/// )
-/// ```
-/// {@end-tool}
-///
-
-typedef ValidateSelectedItem<T> = bool Function(List<T> list, T item);
-typedef OnApplyButtonClick<T> = Function(List<T> list);
+typedef ValidateSelectedItem<T> = bool Function(List<T>? list, T item);
+typedef OnApplyButtonClick<T> = Function(List<T>? list);
 typedef ChoiceChipBuilder<T> = Widget Function(
-    BuildContext context, T item, bool iselected);
+    BuildContext context, T? item, bool? iselected);
+typedef ItemSearchDelegate<T> = List<T> Function(List<T>? list, String text);
+typedef LabelDelegate<T> = String? Function(T?);
+typedef ValidateRemoveItem<T> = List<T> Function(List<T>? list, T item);
 
+/// The [FilterListWidget] is a widget with some filter utilities and callbacks which helps in single/multiple selection from list of data.
+///
+/// {@macro arguments}
+///
+/// ### This example shows how to use [FilterListWidget]
+///  ``` dart
+///  FilterListWidget<String>(
+///    listData: ["One","Two","Three", "Four","five", "Six","Seven","Eight","Nine","Ten"],
+///    selectedListData: ["One", "Three", "Four", "Eight", "Nine"],
+///    hideHeaderText: true,
+///    height: MediaQuery.of(context).size.height,
+///    // hideHeaderText: true,
+///    onApplyButtonClick: (list) {
+///      Navigator.pop(context, list);
+///    },
+///    choiceChipLabel: (item) {
+///      /// Used to print text on chip
+///      return item;
+///    },
+///    validateSelectedItem: (list, val) {
+///      ///  identify if item is selected or not
+///      return list!.contains(val);
+///    },
+///    onItemSearch: (list, text) {
+///      /// When text change in search text field then return list containing that text value
+///      ///
+///      ///Check if list has value which matchs to text
+///      if (list!.any((element) =>
+///          element.toLowerCase().contains(text.toLowerCase()))) {
+///        /// return list which contains matches
+///        return list
+///            .where((element) =>
+///                element.toLowerCase().contains(text.toLowerCase()))
+///            .toList();
+///      }
+///      return [];
+///    },
+///   )
+/// ```
 class FilterListWidget<T> extends StatefulWidget {
   const FilterListWidget({
-    Key key,
+    Key? key,
     this.height,
     this.width,
     this.listData,
-    @required this.validateSelectedItem,
-    @required this.label,
-    @required this.onItemSearch,
+    required this.validateSelectedItem,
+    this.validateRemoveItem,
+    required this.choiceChipLabel,
+    required this.onItemSearch,
     this.selectedListData,
     this.borderRadius = 20,
-    this.headlineText = "Select",
     this.onApplyButtonClick,
+    this.choiceChipBuilder,
+    this.selectedChipTextStyle,
+    this.unselectedChipTextStyle,
+    this.controlButtonTextStyle,
+    this.applyButtonTextStyle,
+    this.headerTextStyle,
+    this.searchFieldTextStyle,
+    this.headlineText = "Select",
     this.searchFieldHintText = "Search here",
     this.hideSelectedTextCount = false,
     this.hideSearchField = false,
-    this.hidecloseIcon = true,
+    this.hideCloseIcon = true,
     this.hideHeader = false,
-    this.hideheaderText = false,
+    this.hideHeaderText = false,
     this.closeIconColor = Colors.black,
     this.headerTextColor = Colors.black,
     this.applyButonTextBackgroundColor = Colors.blue,
@@ -77,110 +87,169 @@ class FilterListWidget<T> extends StatefulWidget {
     this.unselectedTextbackGroundColor = const Color(0xfff8f8f8),
     this.listLimit = maxInt,
     this.enableOnlySingleSelection = false,
-    this.choiceChipBuilder,
-    this.selectedChipTextStyle,
-    this.unselectedChipTextStyle,
-    this.controlButtonTextStyle,
-    this.applyButtonTextStyle,
-    this.headerTextStyle,
-    this.searchFieldTextStyle,
-  })  : assert(validateSelectedItem != null, ''' 
-            validateSelectedItem callback can not be null
-
-            Tried to use below callback to ignore error.
-
-             validateSelectedItem: (list, val) {
-                  return list.contains(val);
-             }
-            '''),
-        super(key: key);
-  final double height;
-  final double width;
+    this.allButtonText = 'All',
+    this.applyButtonText = 'Apply',
+    this.resetButtonText = 'Reset',
+    this.selectedItemsText = 'selected items',
+    this.controlContainerDecoration = const BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.all(Radius.circular(25)),
+      boxShadow: <BoxShadow>[
+        BoxShadow(
+          offset: Offset(0, 5),
+          blurRadius: 15,
+          color: Color(0x12000000),
+        )
+      ],
+    ),
+    this.buttonRadius,
+    this.buttonSpacing,
+    this.wrapAlignment = WrapAlignment.start,
+    this.wrapCrossAxisAlignment = WrapCrossAlignment.start,
+    this.wrapSpacing = 0.0,
+  }) : super(key: key);
+  final double? height;
+  final double? width;
   final double borderRadius;
 
   /// Pass list containing all data which neeeds to filter
-  final List<T> listData;
+  final List<T>? listData;
 
-  /// pass selected list of object
-  ///
-  /// every object on selecteListData should be present in `listData`
-  final List<T> selectedListData;
-  final Color closeIconColor;
-  final Color headerTextColor;
-  final Color backgroundColor;
-  final Color applyButonTextBackgroundColor;
-  final Color searchFieldBackgroundColor;
-  final Color selectedTextBackgroundColor;
-  final Color unselectedTextbackGroundColor;
+  /// The [selectedListData] is used to preselect the choice chips.
+  /// It takes list of object and this list should be subset og [listData]
+  final List<T>? selectedListData;
+  final Color? closeIconColor;
+  final Color? headerTextColor;
+  final Color? backgroundColor;
+  final Color? applyButonTextBackgroundColor;
+  final Color? searchFieldBackgroundColor;
+  final Color? selectedTextBackgroundColor;
+  final Color? unselectedTextbackGroundColor;
 
   final String headlineText;
   final String searchFieldHintText;
   final bool hideSelectedTextCount;
   final bool hideSearchField;
 
-  /// TextStyle for chip when selected
-  final TextStyle selectedChipTextStyle;
+  /// TextStyle for chip when selected.
+  final TextStyle? selectedChipTextStyle;
 
-  /// TextStyle for chip when not selected
-  final TextStyle unselectedChipTextStyle;
+  /// TextStyle for chip when not selected.
+  final TextStyle? unselectedChipTextStyle;
 
-  /// TextStyle for `All` and `Reset` button text
-  final TextStyle controlButtonTextStyle;
+  /// TextStyle for `All` and `Reset` button text.
+  final TextStyle? controlButtonTextStyle;
 
-  /// TextStyle for `Apply` button
-  final TextStyle applyButtonTextStyle;
+  /// TextStyle for `Apply` button.
+  final TextStyle? applyButtonTextStyle;
 
-  /// TextStyle for header text
-  final TextStyle headerTextStyle;
+  /// TextStyle for header text.
+  final TextStyle? headerTextStyle;
 
-  /// TextStyle for search field text
-  final TextStyle searchFieldTextStyle;
+  /// TextStyle for search field text.
+  final TextStyle? searchFieldTextStyle;
 
-  /// if true then it hides close icon
-  final bool hidecloseIcon;
+  /// if true then it hides close icon.
+  final bool hideCloseIcon;
 
-  /// If true then it hide complete header section
-  final bool hideHeader;
+  /// If true then it hide complete header section.
+  final bool? hideHeader;
 
-  /// If true then it hides the header text
-  final bool hideheaderText;
+  /// If true then it hides the header text.
+  final bool? hideHeaderText;
   final int listLimit;
 
-  /// if `enableOnlySingleSelection` is true then it disabled the multiple selection
+  /// if [enableOnlySingleSelection] is true then it disabled the multiple selection.
   /// and enabled the single selection model.
   ///
   /// Defautl value is `false`
-  final bool enableOnlySingleSelection;
+  final bool? enableOnlySingleSelection;
 
-  /// Return list of all selected items
-  final OnApplyButtonClick<T> onApplyButtonClick;
+  /// The `onApplyButtonClick` is a callback which return list of all selected items on apply button click.  if no item is selected then it will return empty list.
+  final OnApplyButtonClick<T>? onApplyButtonClick;
 
-  /// identifies weather a item is selecte or not
-  final ValidateSelectedItem<T> validateSelectedItem;
+  /// The `validateSelectedItem` dentifies weather a item is selecte or not.
+  final ValidateSelectedItem<T> validateSelectedItem; /*required*/
 
-  /// filter list on the basis of search field text
-  final List<T> Function(List<T> list, String text) onItemSearch;
+  /// The `validateRemoveItem` identifies if a item should be remove or not and returns the list filtered.
+  final ValidateRemoveItem<T>? validateRemoveItem;
 
-  /// Display text value on choice chip
-  final String Function(T item) label;
+  /// The `onItemSearch` is delagate which filter the list on the basis of search field text.
+  final ItemSearchDelegate<T> onItemSearch; /*required*/
 
-  /// Builder for custom choice chip
-  final ChoiceChipBuilder choiceChipBuilder;
+  /// The `choiceChipLabel` is callback which required [String] value to display text on choice chip.
+  final LabelDelegate<T> choiceChipLabel; /*required*/
+
+  /// The `choiceChipBuilder` is a builder to design custom choice chip.
+  final ChoiceChipBuilder? choiceChipBuilder;
+
+  /// Apply Button Label
+  final String? applyButtonText;
+
+  /// Reset Button Label
+  final String? resetButtonText;
+
+  /// All Button Label
+  final String? allButtonText;
+
+  /// Selected items count text
+  final String? selectedItemsText;
+
+  /// Control button actions container styling
+  /// ``` dart
+  ///  const BoxDecoration(
+  ///   color: Colors.white,
+  ///   borderRadius: BorderRadius.all(Radius.circular(25)),
+  ///   boxShadow: <BoxShadow>[
+  ///     BoxShadow(
+  ///       offset: Offset(0, 5),
+  ///       blurRadius: 15,
+  ///       color: Color(0x12000000),
+  ///     )
+  ///   ],
+  /// ),
+  /// ```
+  final BoxDecoration? controlContainerDecoration;
+
+  /// Control button radius
+  final double? buttonRadius;
+
+  /// Spacing between control buttons
+  final double? buttonSpacing;
+
+  /// How the choice chip within a run should be placed in the main axis.
+  /// For example, if [wrapSpacing] is [WrapAlignment.center], the choice chip in each run are grouped together in the center of their run in the main axis.
+  ///
+  /// Defaults to [WrapAlignment.start].
+  final WrapAlignment wrapAlignment;
+
+  /// How the choice chip within a run should be aligned relative to each other in the cross axis.
+  ///For example, if this is set to [WrapCrossAlignment.end], and the [direction] is [Axis.horizontal], then the choice chip within each run will have their bottom edges aligned to the bottom edge of the run.
+  ///
+  ///Defaults to [WrapCrossAlignment.start].
+  final WrapCrossAlignment wrapCrossAxisAlignment;
+
+  ///How much space to place between choice chip in a run in the main axis.
+  ///For example, if [wrapSpacing] is 10.0, the choice chip will be spaced at least 10.0 logical pixels apart in the main axis.
+  ///If there is additional free space in a run (e.g., because the wrap has a minimum size that is not filled or because some runs are longer than others), the additional free space will be allocated according to the [alignment].
+  ///
+  ///Defaults to 0.0.
+  final double wrapSpacing;
 
   @override
   _FilterListWidgetState<T> createState() => _FilterListWidgetState<T>();
 }
 
 class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
-  List<T> _listData;
+  List<T>? _listData;
   List<T> _selectedListData = <T>[];
 
   @override
   void initState() {
-    _listData = widget.listData == null ? <T>[] : List.from(widget.listData);
+    _listData = widget.listData == null ? <T>[] : List.from(widget.listData!);
     _selectedListData = widget.selectedListData == null
         ? <T>[]
-        : List<T>.from(widget.selectedListData);
+        : List<T>.from(widget.selectedListData!);
     super.initState();
   }
 
@@ -192,13 +261,13 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
         children: <Widget>[
           Column(
             children: <Widget>[
-              widget.hideHeader ? SizedBox() : _header(),
+              widget.hideHeader! ? SizedBox() : _header(),
               widget.hideSelectedTextCount
                   ? SizedBox()
                   : Padding(
                       padding: EdgeInsets.only(top: 5),
                       child: Text(
-                        '${_selectedListData.length} selected items',
+                        '${_selectedListData.length} ${widget.selectedItemsText}',
                         style: Theme.of(context).textTheme.caption,
                       ),
                     ),
@@ -207,6 +276,9 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
                 padding: EdgeInsets.only(top: 0, bottom: 0, left: 5, right: 5),
                 child: SingleChildScrollView(
                   child: Wrap(
+                    alignment: widget.wrapAlignment,
+                    crossAxisAlignment: widget.wrapCrossAxisAlignment,
+                    spacing: widget.wrapSpacing,
                     children: _buildChoiceList(),
                   ),
                 ),
@@ -246,12 +318,12 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
                 Expanded(
                   flex: 6,
                   child: Center(
-                    child: widget.hideheaderText
+                    child: widget.hideHeaderText!
                         ? Container()
                         : Text(
                             widget.headlineText,
                             style: widget.headerTextStyle ??
-                                Theme.of(context).textTheme.headline4.copyWith(
+                                Theme.of(context).textTheme.headline4!.copyWith(
                                     fontSize: 18,
                                     color: widget.headerTextColor),
                           ),
@@ -264,14 +336,14 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
                     onTap: () {
                       Navigator.pop(context, null);
                     },
-                    child: widget.hidecloseIcon
+                    child: widget.hideCloseIcon
                         ? SizedBox()
                         : Container(
                             height: 25,
                             width: 25,
                             decoration: BoxDecoration(
                                 border:
-                                    Border.all(color: widget.closeIconColor),
+                                    Border.all(color: widget.closeIconColor!),
                                 shape: BoxShape.circle),
                             child: Icon(
                               Icons.close,
@@ -294,14 +366,13 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
                         widget.searchFieldBackgroundColor,
                     searchFieldHintText: widget.searchFieldHintText,
                     searchFieldTextStyle: widget.searchFieldTextStyle,
-                    onChanged: (value) {
+                    onChanged: (String value) {
                       setState(() {
                         if (value.isEmpty) {
                           _listData = widget.listData;
                           return;
                         }
-                        _listData =
-                            widget.onItemSearch(widget.listData, value) ?? [];
+                        _listData = widget.onItemSearch(widget.listData, value);
                       });
                     },
                   )
@@ -313,7 +384,7 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
 
   List<Widget> _buildChoiceList() {
     List<Widget> choices = [];
-    _listData.take(widget.listLimit).forEach(
+    _listData!.take(widget.listLimit).forEach(
       (item) {
         var selectedText = widget.validateSelectedItem(_selectedListData, item);
         choices.add(
@@ -323,13 +394,21 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
             onSelected: (value) {
               setState(
                 () {
-                  if (widget.enableOnlySingleSelection) {
+                  if (widget.enableOnlySingleSelection!) {
                     _selectedListData.clear();
                     _selectedListData.add(item);
                   } else {
-                    selectedText
-                        ? _selectedListData.remove(item)
-                        : _selectedListData.add(item);
+                    if (selectedText) {
+                      if (widget.validateRemoveItem != null) {
+                        var shouldDelete =
+                            widget.validateRemoveItem!(_selectedListData, item);
+                        _selectedListData = shouldDelete;
+                      } else {
+                        _selectedListData.remove(item);
+                      }
+                    } else {
+                      _selectedListData.add(item);
+                    }
                   }
                 },
               );
@@ -339,7 +418,7 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
             unselectedTextBackgroundColor: widget.unselectedTextbackGroundColor,
             selectedChipTextStyle: widget.selectedChipTextStyle,
             unselectedChipTextStyle: widget.unselectedChipTextStyle,
-            text: widget.label(item),
+            text: widget.choiceChipLabel(item),
           ),
         );
       },
@@ -353,26 +432,26 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
     return choices;
   }
 
-  Widget _controlButton({
-    String label,
-    Function onPressed,
-    Color backgroundColor = Colors.transparent,
-    double elevation = 0,
-    TextStyle textStyle,
-  }) {
+  Widget _controlButton(
+      {required String choiceChipLabel,
+      Function? onPressed,
+      Color backgroundColor = Colors.transparent,
+      double elevation = 0,
+      TextStyle? textStyle,
+      double? radius}) {
     return TextButton(
       style: ButtonStyle(
           shape: MaterialStateProperty.all(RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(25)),
+            borderRadius: BorderRadius.all(Radius.circular(radius ?? 25)),
           )),
           backgroundColor: MaterialStateProperty.all(backgroundColor),
           elevation: MaterialStateProperty.all(elevation),
           foregroundColor:
               MaterialStateProperty.all(Theme.of(context).buttonColor)),
-      onPressed: onPressed,
+      onPressed: onPressed as void Function()?,
       clipBehavior: Clip.antiAlias,
       child: Text(
-        label,
+        choiceChipLabel,
         style: textStyle,
         textAlign: TextAlign.center,
         overflow: TextOverflow.ellipsis,
@@ -380,6 +459,7 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
     );
   }
 
+  /// Bottom section for control buttons
   Widget _controlButtonSection() {
     return Align(
       alignment: Alignment.bottomCenter,
@@ -388,67 +468,63 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
         margin: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         alignment: Alignment.center,
         child: Container(
-          decoration: BoxDecoration(
-            color: widget.backgroundColor,
-            borderRadius: BorderRadius.all(Radius.circular(25)),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                offset: Offset(0, 5),
-                blurRadius: 15,
-                color: Color(0x12000000),
-              )
-            ],
-          ),
+          decoration: widget.controlContainerDecoration,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               _controlButton(
-                label: "All",
-                onPressed: widget.enableOnlySingleSelection
-                    ? null
-                    : () {
-                        setState(() {
-                          _selectedListData = List.from(_listData);
-                        });
-                      },
-                // textColor:
-                textStyle: widget.controlButtonTextStyle ??
-                    Theme.of(context).textTheme.bodyText2.copyWith(
-                        fontSize: 20,
-                        color: widget.enableOnlySingleSelection
-                            ? Theme.of(context).dividerColor
-                            : Theme.of(context).primaryColor),
+                  choiceChipLabel: '${widget.allButtonText}',
+                  onPressed: widget.enableOnlySingleSelection!
+                      ? null
+                      : () {
+                          setState(() {
+                            _selectedListData = List.from(_listData!);
+                          });
+                        },
+                  // textColor:
+                  textStyle: widget.controlButtonTextStyle ??
+                      Theme.of(context).textTheme.bodyText2!.copyWith(
+                          fontSize: 20,
+                          color: widget.enableOnlySingleSelection!
+                              ? Theme.of(context).dividerColor
+                              : Theme.of(context).primaryColor),
+                  radius: widget.buttonRadius),
+              SizedBox(
+                width: widget.buttonSpacing ?? 0,
               ),
               _controlButton(
-                label: "Reset",
-                onPressed: () {
-                  setState(() {
-                    _selectedListData.clear();
-                  });
-                },
-                textStyle: widget.controlButtonTextStyle ??
-                    Theme.of(context).textTheme.bodyText2.copyWith(
-                        fontSize: 20, color: Theme.of(context).primaryColor),
+                  choiceChipLabel: '${widget.resetButtonText}',
+                  onPressed: () {
+                    setState(() {
+                      _selectedListData.clear();
+                    });
+                  },
+                  textStyle: widget.controlButtonTextStyle ??
+                      Theme.of(context).textTheme.bodyText2!.copyWith(
+                          fontSize: 20, color: Theme.of(context).primaryColor),
+                  radius: widget.buttonRadius),
+              SizedBox(
+                width: widget.buttonSpacing ?? 0,
               ),
               _controlButton(
-                label: "Apply",
-                onPressed: () {
-                  if (widget.onApplyButtonClick != null) {
-                    widget.onApplyButtonClick(_selectedListData);
-                  } else {
-                    Navigator.pop(context, _selectedListData);
-                  }
-                },
-                elevation: 5,
-                backgroundColor: widget.applyButonTextBackgroundColor,
-                textStyle: widget.applyButtonTextStyle ??
-                    Theme.of(context).textTheme.bodyText2.copyWith(
-                        fontSize: 20,
-                        color: widget.enableOnlySingleSelection
-                            ? Theme.of(context).dividerColor
-                            : Theme.of(context).buttonColor),
-              ),
+                  choiceChipLabel: '${widget.applyButtonText}',
+                  onPressed: () {
+                    if (widget.onApplyButtonClick != null) {
+                      widget.onApplyButtonClick!(_selectedListData);
+                    } else {
+                      Navigator.pop(context, _selectedListData);
+                    }
+                  },
+                  elevation: 5,
+                  backgroundColor: widget.applyButonTextBackgroundColor!,
+                  textStyle: widget.applyButtonTextStyle ??
+                      Theme.of(context).textTheme.bodyText2!.copyWith(
+                          fontSize: 20,
+                          color: widget.enableOnlySingleSelection!
+                              ? Theme.of(context).dividerColor
+                              : Theme.of(context).buttonColor),
+                  radius: widget.buttonRadius),
             ],
           ),
         ),
