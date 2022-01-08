@@ -142,11 +142,21 @@ class FilterListDialog {
     /// Used to hide close icon.
     bool hideCloseIcon = false,
 
+    /// Widget to close the dialog.
+    ///
+    /// If widget is not provided then default close icon will be used.
+    final Widget? headerCloseIcon,
+
     /// Used to hide header.
     bool hideheader = false,
 
     /// Used to hide header text.
     bool hideHeaderText = false,
+
+    /// Hide header area shadow if value is true
+    ///
+    /// By default it is false
+    final bool? hideHeaderAreaShadow,
 
     ///Color of close icon
     Color closeIconColor = Colors.black,
@@ -293,6 +303,8 @@ class FilterListDialog {
               validateSelectedItem: validateSelectedItem,
               hideSelectedTextCount: hideSelectedTextCount,
               hideCloseIcon: hideCloseIcon,
+              hideHeaderAreaShadow: hideHeaderAreaShadow,
+              headerCloseIcon: headerCloseIcon,
               hideHeaderText: hideHeaderText,
               hideSearchField: hideSearchField,
               choiceChipBuilder: choiceChipBuilder,

@@ -71,6 +71,8 @@ class FilterListWidget<T> extends StatefulWidget {
     this.applyButtonTextStyle,
     this.headerTextStyle,
     this.searchFieldTextStyle,
+    this.headerCloseIcon,
+    this.hideHeaderAreaShadow = false,
     this.headlineText = "Select",
     this.searchFieldHintText = "Search here",
     this.hideSelectedTextCount = false,
@@ -152,12 +154,22 @@ class FilterListWidget<T> extends StatefulWidget {
   /// if true then it hides close icon.
   final bool hideCloseIcon;
 
+  /// Widget to close the dialog.
+  ///
+  /// If widget is not provided then default close icon will be used.
+  final Widget? headerCloseIcon;
+
   /// If true then it hide complete header section.
   final bool? hideHeader;
 
   /// If true then it hides the header text.
   final bool? hideHeaderText;
   final int listLimit;
+
+  /// Hide header area shadow if value is true
+  ///
+  /// By default it is false
+  final bool? hideHeaderAreaShadow;
 
   /// if [enableOnlySingleSelection] is true then it disabled the multiple selection.
   /// and enabled the single selection model.
@@ -295,13 +307,15 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
     return Container(
       decoration: BoxDecoration(
         color: widget.backgroundColor,
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            offset: Offset(0, 5),
-            blurRadius: 15,
-            color: Color(0x12000000),
-          )
-        ],
+        boxShadow: widget.hideHeaderAreaShadow == true
+            ? null
+            : <BoxShadow>[
+                BoxShadow(
+                  offset: Offset(0, 5),
+                  blurRadius: 15,
+                  color: Color(0x12000000),
+                )
+              ],
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -338,18 +352,19 @@ class _FilterListWidgetState<T> extends State<FilterListWidget<T>> {
                     },
                     child: widget.hideCloseIcon
                         ? SizedBox()
-                        : Container(
-                            height: 25,
-                            width: 25,
-                            decoration: BoxDecoration(
-                                border:
-                                    Border.all(color: widget.closeIconColor!),
-                                shape: BoxShape.circle),
-                            child: Icon(
-                              Icons.close,
-                              color: widget.closeIconColor,
+                        : widget.headerCloseIcon ??
+                            Container(
+                              height: 25,
+                              width: 25,
+                              decoration: BoxDecoration(
+                                  border:
+                                      Border.all(color: widget.closeIconColor!),
+                                  shape: BoxShape.circle),
+                              child: Icon(
+                                Icons.close,
+                                color: widget.closeIconColor,
+                              ),
                             ),
-                          ),
                   ),
                 ),
               ],
