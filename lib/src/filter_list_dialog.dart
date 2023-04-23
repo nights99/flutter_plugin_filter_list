@@ -1,38 +1,29 @@
 library filter_list;
 
-import 'package:filter_list/src/widget/choice_chip_widget.dart';
-import 'package:filter_list/src/widget/search_field_widget.dart';
+import 'package:filter_list/src/state/filter_state.dart';
+import 'package:filter_list/src/state/provider.dart';
+import 'package:filter_list/src/theme/theme.dart';
+import 'package:filter_list/src/widget/choice_list.dart';
+import 'package:filter_list/src/widget/control_button_bar.dart';
+import 'package:filter_list/src/widget/header.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
 part 'filter_list_widget.dart';
 
-/// The [FilterListDialog.display()] is a [Dialog] with some filter utilities and callbacks which helps in single/multiple selection from list of data.
+/// The [FilterListDialog.display] is a [Dialog] with some filter utilities and callbacks which helps in single/multiple selection from list of data.
 ///
 /// {@template arguments}
-/// The [listData] should be list of dynamic data which neeeds to filter.
+/// The [listData] should be list of dynamic data which needs to filter.
 ///
-/// The [selectedListData] should be subset of [listData]. The list passed to [selectedListData] should available in [listData].
+/// The [selectedListData] should be sub list of [listData]. The list passed to [selectedListData] should available in [listData].
 ///
 /// The [choiceChipLabel] is a callback which required [String] value in return. It used this value to display text on choice chip.
 ///
-/// The [validateSelectedItem] used to identifies weather a item is selecte or not.
+/// The [validateSelectedItem] used to identifies weather a item is selected or not.
 ///
-/// [onItemSearch] filter the list on the basis of search field text. It expose search api to permform search operation accoding to requirement.
+/// [onItemSearch] filter the list on the basis of search field text. It expose search api to perform search operation according to requirement.
 /// When text change in search text field then return a list of element which contains specific text. if no element found then it should return empty list.
 ///
-/// ```dart
-///    onItemSearch: (list, text) {
-///     if (list.any((element) =>
-///         element.toLowerCase().contains(text.toLowerCase()))) {
-///       /// return list which contains matches
-///       return list
-///           .where((element) =>
-///               element.toLowerCase().contains(text.toLowerCase()))
-///           .toList();
-///     }
-///   },
-/// ```
 ///
 /// The [choiceChipBuilder] is a builder to design custom choice chip.
 ///
@@ -63,16 +54,8 @@ part 'filter_list_widget.dart';
 ///        validateSelectedItem: (list, val) {
 ///          return list!.contains(val);
 ///        },
-///        onItemSearch: (list, text) {
-///          if (list!.any((element) =>
-///              element.toLowerCase().contains(text.toLowerCase()))) {
-///            /// return list which contains text matches
-///            return list
-///                .where((element) =>
-///                    element.toLowerCase().contains(text.toLowerCase()))
-///                .toList();
-///          }
-///          return [];
+///        onItemSearch: (data, query) {
+///          return data!.toLowerCase().contains(query.toLowerCase());
 ///        },
 ///        height: 480,
 ///        borderRadius: 20,
@@ -88,22 +71,26 @@ part 'filter_list_widget.dart';
 ///        });
 ///  }
 /// ```
+/// {@macro control_buttons}
 
 class FilterListDialog {
-  static Future display<T>(
-    context, {
+  static Future display<T extends Object>(
+    BuildContext context, {
 
-    /// Pass list containing all data which neeeds to filter.
+    /// Filter theme
+    FilterListThemeData? themeData,
+
+    /// Pass list containing all data which needs to filter.
     required List<T> listData,
 
     /// pass selected list of object
-    /// every object on selecteListData should be present in list data.
+    /// every object on selectedListData should be present in list data.
     List<T>? selectedListData,
 
     /// Display text on choice chip.
     required LabelDelegate<T> choiceChipLabel,
 
-    /// identifies weather a item is selecte or not.
+    /// identifies weather a item is selected or not.
     required ValidateSelectedItem<T> validateSelectedItem,
 
     /// The `validateRemoveItem` identifies if a item should be remove or not and returns the list filtered.
@@ -113,7 +100,7 @@ class FilterListDialog {
     /// When text change in search text field then return list containing that text value.
     ///
     ///Check if list has value which matches to text.
-    required ItemSearchDelegate<T> onItemSearch,
+    required SearchPredict<T> onItemSearch,
 
     /// Return list of all selected items
     required OnApplyButtonClick<T> onApplyButtonClick,
@@ -128,10 +115,7 @@ class FilterListDialog {
     double borderRadius = 20,
 
     /// Headline text to be display as header of dialog.
-    String headlineText = "Select",
-
-    /// Hint text for search field.
-    String searchFieldHintText = "Search here",
+    String? headlineText,
 
     /// Used to hide selected text count.
     bool hideSelectedTextCount = false,
@@ -147,22 +131,13 @@ class FilterListDialog {
     /// If widget is not provided then default close icon will be used.
     final Widget? headerCloseIcon,
 
-    /// Used to hide header.
-    bool hideheader = false,
-
-    /// Used to hide header text.
-    bool hideHeaderText = false,
-
-    /// Hide header area shadow if value is true
+    /// Function to execute on close widget press. To pass user define function and do a different task with this button rather than close. (Example: Add item to the List.)
     ///
-    /// By default it is false
-    final bool? hideHeaderAreaShadow,
+    /// Default is `Navigator.pop(context, null)`
+    final void Function()? onCloseWidgetPress,
 
-    ///Color of close icon
-    Color closeIconColor = Colors.black,
-    Color headerTextColor = Colors.black,
-    Color selectedTextBackgroundColor = Colors.blue,
-    Color unselectedTextbackGroundColor = const Color(0xfff8f8f8),
+    /// Used to hide header.
+    bool hideHeader = false,
 
     /// The `barrierDismissible` argument is used to indicate whether tapping on the barrier will dismiss the dialog.
     ///
@@ -175,35 +150,11 @@ class FilterListDialog {
     /// if `enableOnlySingleSelection` is true then it disabled the multiple selection.
     /// and enabled the single selection model.
     ///
-    /// Defautl value is [false]
+    /// Default value is [false]
     bool enableOnlySingleSelection = false,
 
     /// Background color of dialog box.
     Color backgroundColor = Colors.white,
-
-    /// Background color for search field.
-    Color searchFieldBackgroundColor = const Color(0xfff5f5f5),
-
-    /// Background color for Apply button.
-    Color applyButonTextBackgroundColor = Colors.blue,
-
-    /// TextStyle for chip when selected.
-    TextStyle? selectedChipTextStyle,
-
-    /// TextStyle for chip when not selected.
-    TextStyle? unselectedChipTextStyle,
-
-    /// TextStyle for [All] and [Reset] button text.
-    TextStyle? controlButtonTextStyle,
-
-    /// TextStyle for [Apply] button.
-    TextStyle? applyButtonTextStyle,
-
-    /// TextStyle for header text.
-    TextStyle? headerTextStyle,
-
-    /// TextStyle for search field text.
-    TextStyle? searchFieldTextStyle,
 
     /// Apply Button Label
     String? applyButtonText = 'Apply',
@@ -217,25 +168,6 @@ class FilterListDialog {
     /// Selected items count text
     String? selectedItemsText = 'selected items',
 
-    /// Control container box decoration
-    BoxDecoration? controlContainerDecoration = const BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.all(Radius.circular(25)),
-      boxShadow: <BoxShadow>[
-        BoxShadow(
-          offset: Offset(0, 5),
-          blurRadius: 15,
-          color: Color(0x12000000),
-        )
-      ],
-    ),
-
-    /// Button radius
-    double? buttonRadius,
-
-    /// Spacing between control buttons
-    double? buttonSpacing,
-
     /// The amount of padding added to [MediaQueryData.viewInsets] on the outside of the dialog.
     /// This defines the minimum space between the screen's edges and the dialog.
     ///
@@ -246,31 +178,11 @@ class FilterListDialog {
     /// The `choiceChipBuilder` is a builder to design custom choice chip.
     ChoiceChipBuilder? choiceChipBuilder,
 
-    /// How the choice chip within a run should be placed in the main axis.
-    /// For example, if [wrapSpacing] is [WrapAlignment.center], the choice chip in each run are grouped together in the center of their run in the main axis.
-    ///
-    /// Defaults to [WrapAlignment.start].
-    WrapAlignment wrapAlignment = WrapAlignment.start,
-
-    /// How the choice chip within a run should be aligned relative to each other in the cross axis.
-    ///For example, if this is set to [WrapCrossAlignment.end], and the [direction] is [Axis.horizontal], then the choice chip within each run will have their bottom edges aligned to the bottom edge of the run.
-    ///
-    ///Defaults to [WrapCrossAlignment.start].
-    WrapCrossAlignment wrapCrossAxisAlignment = WrapCrossAlignment.start,
-
-    ///How much space to place between choice chip in a run in the main axis.
-    ///For example, if [wrapSpacing] is 10.0, the choice chip will be spaced at least 10.0 logical pixels apart in the main axis.
-    ///If there is additional free space in a run (e.g., because the wrap has a minimum size that is not filled or because some runs are longer than others), the additional free space will be allocated according to the [alignment].
-    ///
-    ///Defaults to 0.0.
-    double wrapSpacing = 0.0,
+    /// {@macro control_buttons}
+    List<ControlButtonType>? controlButtons,
   }) async {
-    if (height == null) {
-      height = MediaQuery.of(context).size.height * .8;
-    }
-    if (width == null) {
-      width = MediaQuery.of(context).size.width;
-    }
+    height ??= MediaQuery.of(context).size.height * .5;
+    width ??= MediaQuery.of(context).size.width;
     await showDialog(
       context: context,
       barrierDismissible: barrierDismissible,
@@ -286,51 +198,36 @@ class FilterListDialog {
             height: height,
             width: width,
             color: Colors.transparent,
-            child: FilterListWidget(
-              listData: listData,
-              choiceChipLabel: choiceChipLabel,
-              width: width,
-              height: height,
-              hideHeader: hideheader,
-              borderRadius: borderRadius,
-              headlineText: headlineText,
-              onItemSearch: onItemSearch,
-              closeIconColor: closeIconColor,
-              headerTextStyle: headerTextStyle,
-              backgroundColor: backgroundColor,
-              selectedListData: selectedListData,
-              onApplyButtonClick: onApplyButtonClick,
-              validateSelectedItem: validateSelectedItem,
-              hideSelectedTextCount: hideSelectedTextCount,
-              hideCloseIcon: hideCloseIcon,
-              hideHeaderAreaShadow: hideHeaderAreaShadow,
-              headerCloseIcon: headerCloseIcon,
-              hideHeaderText: hideHeaderText,
-              hideSearchField: hideSearchField,
-              choiceChipBuilder: choiceChipBuilder,
-              searchFieldHintText: searchFieldHintText,
-              applyButtonTextStyle: applyButtonTextStyle,
-              searchFieldTextStyle: searchFieldTextStyle,
-              selectedChipTextStyle: selectedChipTextStyle,
-              controlButtonTextStyle: controlButtonTextStyle,
-              unselectedChipTextStyle: unselectedChipTextStyle,
-              enableOnlySingleSelection: enableOnlySingleSelection,
-              searchFieldBackgroundColor: searchFieldBackgroundColor,
-              applyButonTextBackgroundColor: applyButonTextBackgroundColor,
-              selectedItemsText: selectedItemsText,
-              applyButtonText: applyButtonText,
-              resetButtonText: resetButtonText,
-              allButtonText: allButtonText,
-              buttonRadius: buttonRadius,
-              controlContainerDecoration: controlContainerDecoration,
-              buttonSpacing: buttonSpacing,
-              validateRemoveItem: validateRemoveItem,
-              headerTextColor: headerTextColor,
-              selectedTextBackgroundColor: selectedTextBackgroundColor,
-              unselectedTextbackGroundColor: unselectedTextbackGroundColor,
-              wrapAlignment: wrapAlignment,
-              wrapCrossAxisAlignment: wrapCrossAxisAlignment,
-              wrapSpacing: wrapSpacing,
+            child: ClipRRect(
+              borderRadius: BorderRadius.all(
+                Radius.circular(themeData?.borderRadius ?? 20),
+              ),
+              child: FilterListWidget(
+                themeData: themeData,
+                listData: listData,
+                choiceChipLabel: choiceChipLabel,
+                hideHeader: hideHeader,
+                headlineText: headlineText,
+                onItemSearch: onItemSearch,
+                backgroundColor: backgroundColor,
+                selectedListData: selectedListData,
+                onApplyButtonClick: onApplyButtonClick,
+                validateSelectedItem: validateSelectedItem,
+                hideSelectedTextCount: hideSelectedTextCount,
+                hideCloseIcon: hideCloseIcon,
+                headerCloseIcon: headerCloseIcon,
+                onCloseWidgetPress: onCloseWidgetPress,
+                hideSearchField: hideSearchField,
+                choiceChipBuilder: choiceChipBuilder,
+                enableOnlySingleSelection: enableOnlySingleSelection,
+                selectedItemsText: selectedItemsText,
+                applyButtonText: applyButtonText,
+                resetButtonText: resetButtonText,
+                allButtonText: allButtonText,
+                validateRemoveItem: validateRemoveItem,
+                controlButtons: controlButtons ??
+                    [ControlButtonType.All, ControlButtonType.Reset],
+              ),
             ),
           ),
         );
