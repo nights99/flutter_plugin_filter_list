@@ -12,17 +12,19 @@ class ChoiceList<T> extends StatelessWidget {
     this.choiceChipLabel,
     this.enableOnlySingleSelection = false,
     this.validateRemoveItem,
+    this.listLimit = maxInt,
   }) : super(key: key);
   final ValidateSelectedItem<T> validateSelectedItem;
   final ChoiceChipBuilder? choiceChipBuilder;
   final LabelDelegate<T>? choiceChipLabel;
   final bool enableOnlySingleSelection;
   final ValidateRemoveItem<T>? validateRemoveItem;
+  final int listLimit;
 
   List<Widget> _buildChoiceList(BuildContext context) {
     final theme = FilterListTheme.of(context).controlBarButtonTheme;
     final state = StateProvider.of<FilterState<T>>(context);
-    final items = state.items;
+    final items = state.items?.take(this.listLimit).toList();
     final selectedListData = state.selectedItems;
     if (items == null || items.isEmpty) {
       return const <Widget>[];

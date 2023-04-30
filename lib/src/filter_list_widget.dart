@@ -212,6 +212,7 @@ class FilterListWidget<T extends Object> extends StatelessWidget {
                   enableOnlySingleSelection: enableOnlySingleSelection,
                   validateSelectedItem: validateSelectedItem,
                   validateRemoveItem: validateRemoveItem,
+                  listLimit: listLimit,
                 ),
               ),
             ],
