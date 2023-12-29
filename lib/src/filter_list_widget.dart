@@ -77,6 +77,7 @@ class FilterListWidget<T extends Object> extends StatelessWidget {
     this.backgroundColor = Colors.white,
     this.listLimit = maxInt,
     this.enableOnlySingleSelection = false,
+    this.maximumSelectionLength,
     this.allButtonText = 'All',
     this.applyButtonText = 'Apply',
     this.resetButtonText = 'Reset',
@@ -125,6 +126,12 @@ class FilterListWidget<T extends Object> extends StatelessWidget {
   ///
   /// Default value is `false`
   final bool enableOnlySingleSelection;
+
+  /// if `maximumSelectionLength` is not null then it will limit the maximum selection length.
+  /// `maximumSelectionLength` should be greater than 0. If `maximumSelectionLength` is less than 0 then it will throw an exception.
+  /// Only works when `enableOnlySingleSelection` is false.
+  /// Default value is [null]
+  final int? maximumSelectionLength;
 
   /// The `onApplyButtonClick` is a callback which return list of all selected items on apply button click.  if no item is selected then it will return empty list.
   final OnApplyButtonClick<T>? onApplyButtonClick;
@@ -212,6 +219,7 @@ class FilterListWidget<T extends Object> extends StatelessWidget {
                   enableOnlySingleSelection: enableOnlySingleSelection,
                   validateSelectedItem: validateSelectedItem,
                   validateRemoveItem: validateRemoveItem,
+                  maximumSelectionLength: maximumSelectionLength,
                   listLimit: listLimit,
                 ),
               ),
@@ -221,6 +229,7 @@ class FilterListWidget<T extends Object> extends StatelessWidget {
           // /// Bottom section for control buttons
           ControlButtonBar<T>(
             controlButtons: controlButtons,
+            maximumSelectionLength: maximumSelectionLength,
             allButtonText: allButtonText,
             applyButtonText: applyButtonText,
             resetButtonText: resetButtonText,
